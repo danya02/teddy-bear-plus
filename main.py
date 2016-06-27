@@ -1,5 +1,20 @@
 #!/usr/bin/python3
 import time
+class Button:
+	def __init__(self,pin,notgnd):
+		import RPi.GPIO
+		self._gpio=RPi.GPIO
+		self._pin_=pin
+		self._gpio.setmode(self._gpio.BOARD)
+		self._gpio.setwarnings(False)
+		self._gpio.setup(self._pin_,self._gpio.IN,self._gpio.PUD_UP)
+	def get_state(self):
+		self._gpio.setmode(self._gpio.BOARD)
+		self._gpio.setwarnings(False)
+		self._gpio.setup(self._pin_,self._gpio.INPUT,self._gpio.PUD_UP)
+		return self._gpio.input(self._pin_)
+	def wait_for(self,which):
+		self._gpio.wait_for_edge(self._pin_,which)	
 class RGBLED:
 	def __setattr__(self,prop,val):
 		object.__setattr__(self,prop,val)
@@ -40,4 +55,9 @@ class RGBLED:
 	def on(self):self.color=[1,1,1]
 	def off(self):self.color=[0,0,0]
 l=RGBLED(7,12,11)
-l.color=[0,1,0]
+b=Button(3,False)
+while 1:
+	l.color=[0,1,0]
+	b.wait_for(b._gpio.FALLING)
+	l.color=[0,0,0]
+	b.wait_for(b._gpio.RISING)
