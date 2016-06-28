@@ -1,4 +1,5 @@
 #!/usr/bin/python3
+
 #    Teddy-bear Plus: a remote-presence parenting device
 #    Copyright (C) 2016 Danya Generalov
 
@@ -15,8 +16,6 @@
 #    You should have received a copy of the GNU General Public License
 #    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-
-import time
 class Button:
 	def __init__(self,pin,notgnd):
 		import RPi.GPIO
@@ -32,6 +31,7 @@ class Button:
 		return self._gpio.input(self._pin_)
 	def wait_for(self,which):
 		self._gpio.wait_for_edge(self._pin_,which)	
+
 class RGBLED:
 	def __setattr__(self,prop,val):
 		object.__setattr__(self,prop,val)
@@ -71,10 +71,61 @@ class RGBLED:
 		a=None
 	def on(self):self.color=[1,1,1]
 	def off(self):self.color=[0,0,0]
+global l
+global s
+s=6
 l=RGBLED(7,12,11)
 b=Button(3,False)
-while 1:
-	l.color=[0,1,0]
-	b.wait_for(b._gpio.FALLING)
-	l.color=[0,0,0]
-	b.wait_for(b._gpio.RISING)
+def status():
+	from time import sleep
+	global s
+	global l
+	while 1:
+		if s==-1: # hidden
+			l.color=[0,0,0]
+		if s==0: # idle, not controlled
+			l.color=[1,0,0]
+			sleep(0.25)
+			l.color=[0,0,0]
+			sleep(3.75)
+		if s==1: # idle, controlled
+			l.color=[0,1,0]
+			sleep(0.1)
+		if s==2: # Xferring
+			l.color=[0,0,1]
+			sleep(0.5)
+			l.color=[0,0,0]
+			sleep(0.5)
+		if s==3: # visualizing (e.g playing audio,..)
+			l.color=[0,1,0]
+			sleep(0.5)
+			l.color=[0,0,0]
+			sleep(0.5)
+		if s==4: # recording audio
+			l.color=[1,0,0]
+			sleep(0.25)
+			l.color=[0,0,0]
+			sleep(0.25)
+		if s==5: # preparing to take photo
+			l.color=[0,1,0]
+			sleep(0.25)
+			l.color=[0,0,1]
+			sleep(0.25)
+		if s==6: # obfuscated
+			import random
+			l.color=random.choice([[1,0,0],[0,1,0],[0,0,1],[0,0,0]])
+			sleep(random.random())
+		if s==7: # encountering an error
+			l.color=[1,0,0]
+			sleep(0.5)
+			l.color=[0,0,1]
+			sleep(0.5)
+import threading
+blinkenlights=threading.Thread(name="Blinkenlights function",target=status)
+blinkenlights.start()
+import time
+while 1:	
+	s+=1
+	if s==8:s=0
+	print(s)
+	time.sleep(10)
