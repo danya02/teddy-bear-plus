@@ -124,8 +124,59 @@ import threading
 blinkenlights=threading.Thread(name="Blinkenlights function",target=status)
 blinkenlights.start()
 import time
-while 1:	
-	s+=1
-	if s==8:s=0
-	print(s)
-	time.sleep(10)
+from telegram.ext import Updater, CommandHandler, MessageHandler, Filters
+import logging
+
+# Enable logging
+logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+                    level=logging.INFO)
+
+logger = logging.getLogger(__name__)
+
+
+# Define a few command handlers. These usually take the two arguments bot and
+# update. Error handlers also receive the raised TelegramError object in error.
+def start(bot, update):
+	bot.sendMessage(update.message.chat_id, text='Hi!')
+
+
+def help(bot, update):
+	bot.sendMessage(update.message.chat_id, text='Help!')
+global mode
+mode=False
+
+def echo(bot, update):
+	global s
+	global mode
+	if not mode:
+		bot.sendMessage(update.message.chat_id, text=update.message.text)
+	else:
+		try:
+			s=int(update.message.text)
+			bot.sendMessage(update.message.chat_id, text="Succesfully set mode to "+str(s))
+		except:bot.sendMessage(update.message.chat_id, text="Failed to set mode to "+str(s))
+	mode=False
+		
+def error(bot, update, error):
+	logger.warn('Update "%s" caused error "%s"' % (update, error))
+def setmode(bot,update):
+	bot.sendMessage(update.message.chat_id, text="Send, as number in -1~7, the displayed mode of operation.")
+	global mode
+	mode=True
+def telegrammar():
+    # Create the EventHandler and pass it your bot's token.
+	updater = Updater("135232412:AAFfA6JImKl4sxv35IAw2f2Zjq7gb67Jk7Q")
+
+    # Get the dispatcher to register handlers
+	dp = updater.dispatcher
+
+    # on different commands - answer in Telegram
+	dp.add_handler(CommandHandler("start", start))
+	dp.add_handler(CommandHandler("help", help))
+	dp.add_handler(CommandHandler("mode",setmode))
+    # on noncommand i.e message - echo the message on Telegram
+	dp.add_handler(MessageHandler([Filters.text], echo))
+	dp.add_error_handler(error)
+	updater.start_polling()
+	updater.idle()
+telegrammar()
