@@ -16,6 +16,8 @@
 #    You should have received a copy of the GNU General Public License
 #    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+global TOKEN
+TOKEN="135232412:AAFfA6JImKl4sxv35IAw2f2Zjq7gb67Jk7Q"
 class Button:
 	def __init__(self,pin,notgnd):
 		import RPi.GPIO
@@ -24,10 +26,10 @@ class Button:
 		self._gpio.setmode(self._gpio.BOARD)
 		self._gpio.setwarnings(False)
 		self._gpio.setup(self._pin_,self._gpio.IN,(self._gpio.PUD_UP if not notgnd else self._gpio.PUD_DOWN))
-	def get_state(self):
+	def state(self):
 		self._gpio.setmode(self._gpio.BOARD)
 		self._gpio.setwarnings(False)
-		self._gpio.setup(self._pin_,self._gpio.INPUT,self._gpio.PUD_UP)
+		self._gpio.setup(self._pin_,self._gpio.IN,self._gpio.PUD_UP)
 		return self._gpio.input(self._pin_)
 	def wait_for(self,which):
 		self._gpio.wait_for_edge(self._pin_,which)	
@@ -74,9 +76,17 @@ class RGBLED:
 global l
 global s
 s=6
-l=RGBLED(7,12,11)
+l=RGBLED(13,12,11)
 global b1
-b1=Button(3,False)
+global b2
+global b3
+b1=Button(7,False)
+b2=Button(15,False)
+b3=Button(16,False)
+global obfsd
+obfsd=False
+global hidden
+hidden=False
 def status():
 	from time import sleep
 	global s
@@ -139,17 +149,28 @@ global vol
 vol=50
 # Define a few command handlers. These usually take the two arguments bot and
 # update. Error handlers also receive the raised TelegramError object in error.
+global gbot
+global gupdate
+global chatid
 def start(bot, update):
+	global chatid
+	global gbot
+	global gupdate
+	chatid=update.message.chat_id
+	gbot=bot
+	gupdate=update
 	bot.sendMessage(update.message.chat_id, text='Hi!')
 
 def help(bot, update):
+	global chatid
+	global gbot
+	global gupdate
+	chatid=update.message.chat_id
+	gbot=bot
+	gupdate=update
 	bot.sendMessage(update.message.chat_id, text='Help!')
 global mode
 mode=False
-global hidden
-hidden=False
-global obfsd
-obfsd=False
 def echo(bot, update):
 	global s
 	global mode
@@ -168,8 +189,18 @@ def statset(status):
 	elif obfs:s=6
 	elif hidden:s=-1
 def error(bot, update, error):
+	global gbot
+	gbot=bot
+	global gupdate
+	gupdate=update
 	logger.warn('Update "%s" caused error "%s"' % (update, error))
 def setmode(bot,update):
+	global chatid
+	chatid=update.message.chat_id
+	global gbot
+	gbot=bot
+	global gupdate
+	gupdate=update
 	bot.sendMessage(update.message.chat_id, text="Send, as number in -1~7, the displayed mode of operation.")
 	global mode
 	mode=True
@@ -191,53 +222,126 @@ def vol_set(v):
 	vol=v
 	os.popen("amixer set PCM "+str(vol)+"%").read()
 def hide(bot,update):
+	global chatid
+	chatid=update.message.chat_id
+	global gbot
+	gbot=bot
+	global gupdate
+	gupdate=update
 	bot.sendMessage(update.message.chat_id, text="Device status shown.")
 	global hidden
 	hidden=False
 def unhide(bot,update):
+	global chatid
+	chatid=update.message.chat_id
 	bot.sendMessage(update.message.chat_id, text="Device status hidden.")
 	global hidden
 	hidden=False
 def obfs(bot,update):
+	global chatid
+	chatid=update.message.chat_id
+	global gbot
+	gbot=bot
+	global gupdate
+	gupdate=update
 	bot.sendMessage(update.message.chat_id, text="Device status obfuscated.")
 	global obfsd
 	obfsd=True
 def unobfs(bot,update):
+	global chatid
+	chatid=update.message.chat_id
+	global gbot
+	gbot=bot
+	global gupdate
+	gupdate=update
 	bot.sendMessage(update.message.chat_id, text="Device status not obfuscated.")
 	global obfsd
 	obfsd=False
 def getvol(bot,update):
+	global chatid
+	chatid=update.message.chat_id
+	global gbot
+	gbot=bot
+	global gupdate
+	gupdate=update
 	global vol
 	bot.sendMessage(update.message.chat_id, text="Current volume: "+str(vol)+"%")
 def upvol(bot,update):
+	global chatid
+	chatid=update.message.chat_id
+	global gbot
+	gbot=bot
+	global gupdate
+	gupdate=update
 	global vol
 	vol+=5
 	setvol(vol)
 	bot.sendMessage(update.message.chat_id, text="Current volume: "+str(vol)+"%")
 def downvol(bot,update):
+	global chatid
+	chatid=update.message.chat_id
+	global gbot
+	gbot=bot
+	global gupdate
+	gupdate=update
 	global vol
 	vol-=5
 	vol_set(vol)
 	bot.sendMessage(update.message.chat_id, text="Current volume: "+str(vol)+"%")
-#def photo(update,bot):
-#	statset(5)
-#	bot.sendChatAction(update.message.chat_id,telegram.ChatAction.UPLOAD_PHOTO)
-#	import pygame.camera
-#	pygame.camera.init()
-#	cam=pygame.camera.Camera(pygame.camera.list_cameras()[0])
-#	cam.start()
-#	import time
-#	time.sleep(5)
-#	statset(-1)
-#	time.sleep(1)
-#	img=cam.get_image()
-#	statset(5)
-#	import pygame.image
-#	pygame.image.save(img,"/tmp/img.
-#	statset(1)
+def photo(update,bot):
+	global chatid
+	import telegram
+	global gbot
+	gbot=bot
+	bot=telegram.Bot(token=TOKEN)
+	global gupdate
+	gupdate=update
+	statset(5)
+	#bot.sendChatAction(update.message.chat_id,telegram.ChatAction.UPLOAD_PHOTO)
+	import pygame.camera
+	pygame.camera.init()
+	cam=pygame.camera.Camera(pygame.camera.list_cameras()[0])
+	cam.start()
+	import time
+	time.sleep(5)
+	statset(-1)
+	time.sleep(1)
+	img=cam.get_image()
+	statset(5)
+	import pygame.image
+	pygame.image.save(img,"/tmp/img.png")
+	img=None
+	cam.stop()
+	cam=None
+	bot.sendPhoto(chatid,open("/tmp/img.png","rb"))
+	statset(1)
+def record():
+	import telegram
+	global chatid
+	global gbot
+	#bot=gbot
+	bot=telegram.Bot(token=TOKEN)
+	global gupdate
+	update=gupdate
+	#bot.sendChatAction(update.message.chat_id,telegram.ChatAction.UPLOAD_AUDIO)
+	import subprocess
+	c1="arecord -D plughw:1,0 -".split(" ")
+	c2="ffmpeg -y -i pipe: -f wav /tmp/rec.ogg".split(" ")
+	p1=subprocess.Popen(c1,stdout=subprocess.PIPE)
+	p2=subprocess.Popen(c2,stdin=p1.stdout)
+	global b1
+	statset(4)
+	b1.wait_for(b1._gpio.RISING)
+	p1.terminate()
+	p2.communicate()
+	bot.sendVoice(chatid,open("/tmp/rec.ogg","rb"))
+	statset(1)
+	return None
+
+
 def telegrammar():
     # Create the EventHandler and pass it your bot's token.
-	updater = Updater("135232412:AAFfA6JImKl4sxv35IAw2f2Zjq7gb67Jk7Q")
+	updater = Updater(TOKEN)
 
     # Get the dispatcher to register handlers
 	dp = updater.dispatcher
@@ -253,23 +357,20 @@ def telegrammar():
 	dp.add_handler(CommandHandler("getvol",getvol))
 	dp.add_handler(CommandHandler("upvol",upvol))
 	dp.add_handler(CommandHandler("downvol",downvol))
-#	dp.add_handler(CommandHandler("photo",photo))
+	dp.add_handler(CommandHandler("photo",photo))
     # on noncommand i.e message - echo the message on Telegram
 	dp.add_handler(MessageHandler([Filters.text], echo))
 	dp.add_error_handler(error)
 	updater.start_polling()
 	updater.idle()
-def record():
-	import subprocess
-	c1="arecord -D plughw:1,0 -".split(" ")
-	c2="ffmpeg -i pipe: -f wav /tmp/rec.ogg".split(" ")
-	p1=subprocess.Popen(c1,stdout=subprocess.PIPE)
-	p2=subprocess.Popen(c2,stdin=p1.stdout)
+def standby():
 	global b1
-	statset(4)
-	b1.wait_for(b1._gpio.RISING)
-	p1.terminate()
-	p2.communicate()
-	statset(1)
-#telegrammar()
-
+	global b2
+	global b3
+	while 1:
+		if not b1.state():record()
+		if not b2.state():vol_down()
+		if not b3.state():vol_up()
+sb=threading.Thread(name="Standby thread",target=standby)
+sb.start()
+telegrammar()
